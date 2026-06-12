@@ -1,12 +1,3 @@
-import subprocess
-import sys
-
-# Kütüphane eksikse hata vermesin, zorla arka planda yüklesin diye en başa ekledik
-try:
-    import openpyxl
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl"])
-
 import streamlit as st
 import pandas as pd
 
@@ -74,4 +65,3 @@ try:
 
 except Exception as e:
     st.error(f"Bir hata oluştu: {e}")
-    st.write("Lütfen HKED.xlsx dosyasının adını ve içeriğini kontrol edin.")

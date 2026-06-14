@@ -7,8 +7,6 @@ import re
 # --- AYARLAR ---
 DATA_FILE = "HKED.xlsx"
 RESULT_FILE = "sonuclar.json"
-
-# Katılımcılarınızı buraya manuel yazın (Excel başlıklarıyla aynı olmalı)
 PARTICIPANT_NAMES = ['TOLGA', 'MUSTAFA', 'IŞITAN', 'YİĞİT', 'CENK']
 
 st.set_page_config(page_title="HKED Turnuva Takip", layout="wide")
@@ -17,7 +15,6 @@ st.set_page_config(page_title="HKED Turnuva Takip", layout="wide")
 @st.cache_data
 def load_data():
     df = pd.read_excel(DATA_FILE)
-    # Sütun isimlerini temizle (boşlukları sil, büyük harfe çevir)
     df.columns = [re.sub(r'[^a-zA-ZçÇğĞıİöÖşŞüÜ0-9]', '', str(c)).upper() for c in df.columns]
     return df
 
@@ -82,7 +79,6 @@ try:
                 try:
                     odd = float(row[res])
                     for p in PARTICIPANT_NAMES:
-                        # Puanı sadece katılımcı listesindekiler için işle
                         if str(row[p]) == res:
                             scores[p] += odd
                 except: continue
@@ -92,8 +88,23 @@ try:
     lb = pd.DataFrame(list(scores.items()), columns=['Katılımcı', 'Toplam Puan'])
     lb = lb.sort_values('Toplam Puan', ascending=False).reset_index(drop=True)
     lb.index = range(1, len(lb) + 1)
-    
     st.dataframe(lb.style.format({"Toplam Puan": "{:.2f}"}), use_container_width=True)
+
+    # --- YENİ EKLENEN: MAÇ SONUÇLARI TABLOSU ---
+    st.subheader("⚽ Girilen Maç Sonuçları")
+    match_list = []
+    for idx_str, res in results.items():
+        if res != "Oynanmadı" and idx_str.isdigit():
+            row = df.iloc[int(idx_str)]
+            match_list.append({
+                "Maç": f"{row.get('TAKIM1', 'T1')} - {row.get('TAKIM2', 'T2')}",
+                "Sonuç": res
+            })
+    
+    if match_list:
+        st.table(pd.DataFrame(match_list))
+    else:
+        st.info("Henüz girilmiş bir sonuç bulunmuyor.")
 
     # Fikstür
     st.subheader("📅 Tüm Fikstür")

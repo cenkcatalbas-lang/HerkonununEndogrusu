@@ -368,6 +368,8 @@ try:
         fire = fire_icons.get(rank, "🧊" if rank == total_p else "💧")
         cls  = card_cls.get(rank, "cx")
         roast = get_roast(rank, total_p)
+        if name == "YİĞİT":
+            roast = "Buralar sana fazla aslanım, yallah 9gag'e 😂"
         rcls = "r1" if rank == 1 else "rx"
 
         st.markdown(f"""

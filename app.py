@@ -8,25 +8,17 @@ import re
 DATA_FILE = "HKED.xlsx"
 RESULT_FILE = "sonuclar.json"
 
+# Katılımcılarınızı buraya manuel yazın (Excel başlıklarıyla aynı olmalı)
+PARTICIPANT_NAMES = ['TOLGA', 'MUSTAFA', 'IŞITAN', 'YİĞİT', 'CENK']
+
 st.set_page_config(page_title="HKED Turnuva Takip", layout="wide")
 
 # --- FONKSİYONLAR ---
 @st.cache_data
 def load_data():
     df = pd.read_excel(DATA_FILE)
-    # Mükerrer sütunları benzersiz yap
-    cols = pd.Series(df.columns)
-    for dup in cols[cols.duplicated()].unique():
-        cols[cols[cols == dup].index.values.tolist()] = [f"{dup}.{i}" if i != 0 else dup for i in range(sum(cols == dup))]
-    df.columns = cols
-    
-    # Başlıkları temizle
-    new_cols = []
-    for col in df.columns:
-        # Boşlukları ve özel karakterleri at
-        clean_col = re.sub(r'[^a-zA-ZçÇğĞıİöÖşŞüÜ0-9]', '', str(col)).upper()
-        new_cols.append(clean_col)
-    df.columns = new_cols
+    # Sütun isimlerini temizle (boşlukları sil, büyük harfe çevir)
+    df.columns = [re.sub(r'[^a-zA-ZçÇğĞıİöÖşŞüÜ0-9]', '', str(c)).upper() for c in df.columns]
     return df
 
 def load_results():
@@ -38,50 +30,50 @@ def load_results():
             return {}
     return {}
 
-# --- ANA PROGRAM ---
+# --- ARAYÜZ ---
 st.title("🏆 HKED Tahmin Turnuvası")
 
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
+
+# Sidebar: Admin Paneli
+with st.sidebar:
+    st.header("⚙️ Admin Paneli")
+    if not st.session_state.authenticated:
+        if st.text_input("Şifre", type="password") == "1234":
+            if st.button("Giriş Yap"):
+                st.session_state.authenticated = True
+                st.rerun()
+    else:
+        if st.button("Çıkış Yap"):
+            st.session_state.authenticated = False
+            st.rerun()
+            
+        st.write("---")
+        df_temp = load_data()
+        results = load_results()
+        
+        for idx, row in df_temp.iterrows():
+            m_label = f"{row.get('TAKIM1', 'T1')} - {row.get('TAKIM2', 'T2')}"
+            results[str(idx)] = st.selectbox(
+                m_label, ["Oynanmadı", "1", "0", "2"], 
+                index=["Oynanmadı", "1", "0", "2"].index(results.get(str(idx), "Oynanmadı")),
+                key=f"match_{idx}"
+            )
+        
+        if st.button("💾 Değişiklikleri Kaydet"):
+            with open(RESULT_FILE, "w") as f:
+                json.dump(results, f)
+            st.success("Kayıt başarılı!")
+            st.rerun()
+
+# --- ANA MANTIK ---
 try:
     df = load_data()
     results = load_results()
-    
-    # DİKKAT: 'MACSONUCU' başlığını buraya ekledik ki katılımcı sanmasın
-    exclude_cols = ['TARİH', 'SAAT', 'GRUP', 'MACSONUCU', 'TAKIM1', 'TAKIM2', '1', '0', '2']
-    participants = [c for c in df.columns if c not in exclude_cols and not c.startswith('UNNAMED')]
-
-    # Sidebar Admin Paneli
-    if 'authenticated' not in st.session_state: st.session_state.authenticated = False
-    
-    with st.sidebar:
-        st.header("⚙️ Admin Paneli")
-        if not st.session_state.authenticated:
-            if st.text_input("Şifre", type="password") == "1234":
-                if st.button("Giriş Yap"):
-                    st.session_state.authenticated = True
-                    st.rerun()
-        else:
-            if st.button("Çıkış Yap"):
-                st.session_state.authenticated = False
-                st.rerun()
-            
-            st.write("---")
-            temp_results = results.copy()
-            for idx, row in df.iterrows():
-                m_label = f"{row.get('TAKIM1', 'T1')} - {row.get('TAKIM2', 'T2')}"
-                temp_results[str(idx)] = st.selectbox(
-                    m_label, ["Oynanmadı", "1", "0", "2"], 
-                    index=["Oynanmadı", "1", "0", "2"].index(results.get(str(idx), "Oynanmadı")),
-                    key=f"match_{idx}"
-                )
-            
-            if st.button("💾 Değişiklikleri Kaydet"):
-                with open(RESULT_FILE, "w") as f:
-                    json.dump(temp_results, f)
-                st.success("Kayıt başarılı!")
-                st.rerun()
 
     # Puan Hesaplama
-    scores = {p: 0.0 for p in participants}
+    scores = {p: 0.0 for p in PARTICIPANT_NAMES}
     for idx_str, res in results.items():
         if res != "Oynanmadı" and idx_str.isdigit():
             idx = int(idx_str)
@@ -89,16 +81,17 @@ try:
                 row = df.iloc[idx]
                 try:
                     odd = float(row[res])
-                    for p in participants:
+                    for p in PARTICIPANT_NAMES:
+                        # Puanı sadece katılımcı listesindekiler için işle
                         if str(row[p]) == res:
                             scores[p] += odd
                 except: continue
 
-    # Puan Tablosu (1'den Başlayan Sıralama)
+    # Puan Tablosu
     st.subheader("📊 Güncel Sıralama")
     lb = pd.DataFrame(list(scores.items()), columns=['Katılımcı', 'Toplam Puan'])
     lb = lb.sort_values('Toplam Puan', ascending=False).reset_index(drop=True)
-    lb.index = range(1, len(lb) + 1) # Sıralamayı 1'den başlat
+    lb.index = range(1, len(lb) + 1)
     
     st.dataframe(lb.style.format({"Toplam Puan": "{:.2f}"}), use_container_width=True)
 

@@ -9,7 +9,7 @@ DATA_FILE = "HKED.xlsx"
 RESULT_FILE = "sonuclar.json"
 PARTICIPANT_NAMES = ['TOLGA', 'MUSTAFA', 'IŞITAN', 'YİĞİT', 'CENK']
 
-st.set_page_config(page_title="HKED Turnuva Takip", page_icon="🏆", layout="wide")
+st.set_page_config(page_title="HKED Turnuva Takip", layout="wide")
 
 # --- FONKSİYONLAR ---
 @st.cache_data
@@ -23,16 +23,17 @@ def load_results():
         try:
             with open(RESULT_FILE, "r") as f:
                 return json.load(f)
-        except: return {}
+        except:
+            return {}
     return {}
 
 # --- ARAYÜZ ---
 st.title("🏆 HKED Tahmin Turnuvası")
-st.markdown("---")
 
-# Admin Paneli
-if 'authenticated' not in st.session_state: st.session_state.authenticated = False
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
 
+# Sidebar: Admin Paneli
 with st.sidebar:
     st.header("⚙️ Admin Paneli")
     if not st.session_state.authenticated:
@@ -44,9 +45,11 @@ with st.sidebar:
         if st.button("Çıkış Yap"):
             st.session_state.authenticated = False
             st.rerun()
+            
         st.write("---")
         df_temp = load_data()
         results = load_results()
+        
         for idx, row in df_temp.iterrows():
             m_label = f"{row.get('TAKIM1', 'T1')} - {row.get('TAKIM2', 'T2')}"
             results[str(idx)] = st.selectbox(
@@ -54,7 +57,8 @@ with st.sidebar:
                 index=["Oynanmadı", "1", "0", "2"].index(results.get(str(idx), "Oynanmadı")),
                 key=f"match_{idx}"
             )
-        if st.button("💾 Kaydet"):
+        
+        if st.button("💾 Değişiklikleri Kaydet"):
             with open(RESULT_FILE, "w") as f:
                 json.dump(results, f)
             st.success("Kayıt başarılı!")
@@ -79,33 +83,33 @@ try:
                             scores[p] += odd
                 except: continue
 
-    # Puan Tablosu ve Etiketleme
+    # Puan Tablosu
+    st.subheader("📊 Güncel Sıralama")
     lb = pd.DataFrame(list(scores.items()), columns=['Katılımcı', 'Toplam Puan'])
     lb = lb.sort_values('Toplam Puan', ascending=False).reset_index(drop=True)
-    
-    def get_rank_label(rank):
-        labels = {0: "Normal", 1: "Tecrübesiz", 2: "Aptal", 3: "Gerizekalı", 4: "Beyinsiz"}
-        return labels.get(rank, "---")
-
-    lb['Durum'] = [get_rank_label(i) for i in range(len(lb))]
     lb.index = range(1, len(lb) + 1)
+    st.dataframe(lb.style.format({"Toplam Puan": "{:.2f}"}), use_container_width=True)
 
-    # Sekmeli Görünüm
-    tab1, tab2 = st.tabs(["📊 Puan Durumu", "📈 Grafik"])
-    with tab1:
-        st.dataframe(lb.style.format({"Toplam Puan": "{:.2f}"}).background_gradient(cmap="Greens"), use_container_width=True)
-    with tab2:
-        st.bar_chart(lb.set_index('Katılımcı')['Toplam Puan'])
-
-    # Maç Sonuçları
+    # --- YENİ EKLENEN: MAÇ SONUÇLARI TABLOSU ---
     st.subheader("⚽ Girilen Maç Sonuçları")
-    match_data = [{"Maç": f"{df.iloc[int(idx)].get('TAKIM1', 'T1')} - {df.iloc[int(idx)].get('TAKIM2', 'T2')}", "Sonuç": res} 
-                  for idx, res in results.items() if res != "Oynanmadı" and idx.isdigit()]
+    match_list = []
+    for idx_str, res in results.items():
+        if res != "Oynanmadı" and idx_str.isdigit():
+            row = df.iloc[int(idx_str)]
+            match_list.append({
+                "Maç": f"{row.get('TAKIM1', 'T1')} - {row.get('TAKIM2', 'T2')}",
+                "Sonuç": res
+            })
     
-    if match_data:
-        st.table(pd.DataFrame(match_data).set_index("Maç"))
+    if match_list:
+        st.table(pd.DataFrame(match_list))
     else:
-        st.info("Henüz sonuç girilmedi.")
+        st.info("Henüz girilmiş bir sonuç bulunmuyor.")
+
+    # Fikstür
+    st.subheader("📅 Tüm Fikstür")
+    with st.expander("Fikstürü Görüntüle"):
+        st.dataframe(df, use_container_width=True)
 
 except Exception as e:
     st.error(f"Sistem Hatası: {e}")

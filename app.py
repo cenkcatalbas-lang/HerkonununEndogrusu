@@ -251,7 +251,7 @@ ROASTS = {
     ],
     5: [
         "SONUNCU. 💀 Bu sonucu kelimelerle anlatmak bile acı verici.",
-        "Turnuvada varlığından kimse haberdar değildi, skor da bunu kanıtlıyor.",
+        "Gördüğünüz yerde orospu diyeceksiniz.",
         "Tebrikler! En değersiz tahminler ödülünü kazandın. Kupa yok tabii. 🗑️"
     ]
 }

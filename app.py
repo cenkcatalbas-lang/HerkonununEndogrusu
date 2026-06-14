@@ -5,13 +5,16 @@ import os
 
 st.set_page_config(page_title="HKED Turnuva Takip", layout="wide")
 
-# --- KALICI KAYIT VE YÜKLEME ---
+# --- AYARLAR VE FONKSİYONLAR ---
 RESULT_FILE = "sonuclar.json"
 
 def load_results():
     if os.path.exists(RESULT_FILE):
-        with open(RESULT_FILE, "r") as f:
-            return json.load(f)
+        try:
+            with open(RESULT_FILE, "r") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, ValueError):
+            return {}
     return {}
 
 def save_results(results):
@@ -21,17 +24,17 @@ def save_results(results):
 @st.cache_data
 def load_data():
     df = pd.read_excel("HKED.xlsx")
-    # Sütun isimlerindeki tüm boşlukları kaldırır, böylece "YİĞİT " ile "YİĞİT" aynı olur
+    # Sütun isimlerindeki boşlukları temizle (YİĞİT hatasını engeller)
     df.columns = df.columns.str.strip()
     return df
 
-# --- OTURUM YÖNETİMİ ---
+# Oturum yönetimi
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 
 st.title("🏆 HKED Tahmin Turnuvası Canlı Puan Durumu")
 
-# --- YETKİLENDİRME (ŞİFRE) ---
+# --- YETKİLENDİRME (ŞİFRE: 1234) ---
 with st.sidebar:
     st.header("⚙️ Admin Paneli")
     if not st.session_state.authenticated:
@@ -48,21 +51,18 @@ with st.sidebar:
             st.session_state.authenticated = False
             st.rerun()
 
-# --- ANA MANTIK ---
+# --- ANA PROGRAM ---
 try:
     df = load_data()
     results = load_results()
-  # Listeyi boşluksuz tanımlayın
-participants = ['TOLGA', 'MUSTAFA', 'IŞITAN', 'YİĞİT', 'CENK']
-
-# Puan hesaplarken de strip() kullanarak garantiye alın
-for p in participants:
-    # row[p] kısmında hata alıyorsanız, p'nin Excel'deki başlıkla aynı olduğundan emin olun
-    if int(row[p.strip()]) == int(res): 
-        scores[p.strip()] += odd
+    
+    # Katılımcı listesi
+    participants = ['TOLGA', 'MUSTAFA', 'IŞITAN', 'YİĞİT', 'CENK']
+    scores = {p: 0.0 for p in participants}
 
     # Admin ise sonuçları güncelle
     if st.session_state.authenticated:
+        st.sidebar.write("---")
         st.sidebar.write("Maç sonuçlarını güncelleyin:")
         for index, row in df.iterrows():
             match_label = f"{row['TAKIM - 1']} - {row['TAKIM - 2']}"
@@ -86,12 +86,15 @@ for p in participants:
         if res != "Oynanmadı":
             idx = int(idx_str)
             row = df.iloc[idx]
+            # row[int(res)] sütunu maç sonucunun oranını verir
             odd = float(row[int(res)])
+            
             for p in participants:
-                if int(row[p.strip()]) == int(res):
-                    scores[p.strip()] += odd
+                # Excel'deki katılımcı sütununda o maçın tahmini sonucu var mı?
+                if str(row[p]) == res:
+                    scores[p] += odd
 
-    # Tablolar
+    # Tabloyu oluşturma
     leaderboard = pd.DataFrame(list(scores.items()), columns=['Katılımcı', 'Toplam Puan'])
     leaderboard = leaderboard.sort_values(by='Toplam Puan', ascending=False).reset_index(drop=True)
     leaderboard.index += 1

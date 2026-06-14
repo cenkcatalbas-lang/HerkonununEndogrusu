@@ -14,21 +14,18 @@ st.set_page_config(page_title="HKED Turnuva Takip", layout="wide")
 @st.cache_data
 def load_data():
     df = pd.read_excel(DATA_FILE)
-    
-    # 1. Mükerrer sütunları benzersiz yap
+    # Mükerrer sütunları benzersiz yap
     cols = pd.Series(df.columns)
     for dup in cols[cols.duplicated()].unique():
         cols[cols[cols == dup].index.values.tolist()] = [f"{dup}.{i}" if i != 0 else dup for i in range(sum(cols == dup))]
     df.columns = cols
     
-    # 2. Başlıkları temizle (Gereksiz boşlukları ve karakterleri at)
-    # Bu işlem sayesinde '06TOLGA0', 'TOLGA ', 'YİĞİT ' gibi değerler 'TOLGA', 'YİĞİT' olur
+    # Başlıkları temizle (Regex ile)
     new_cols = []
     for col in df.columns:
         clean_col = re.sub(r'[^a-zA-ZçÇğĞıİöÖşŞüÜ0-9]', '', str(col))
         new_cols.append(clean_col)
     df.columns = new_cols
-    
     return df
 
 def load_results():
@@ -43,7 +40,6 @@ def load_results():
 # --- ARAYÜZ ---
 st.title("🏆 HKED Tahmin Turnuvası")
 
-# Şifre Yönetimi
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 
@@ -64,12 +60,39 @@ try:
     df = load_data()
     results = load_results()
     
-    # Excel'deki bahis oranları sütunları '1', '0', '2' olarak tanımlı varsayıyoruz
-    # Katılımcıları 'TARİH', 'TAKIM', 'SAAT', 'GRUP', '1', '0', '2' dışındakiler olarak seç
     exclude_cols = ['TARİH', 'SAAT', 'GRUP', 'MACSONUCU', 'TAKIM1', 'TAKIM2', '1', '0', '2']
     participants = [c for c in df.columns if c not in exclude_cols and not c.startswith('Unnamed')]
 
-    # Admin girişi yapıldıysa sonuç girme ekranı
     if st.session_state.authenticated:
         for idx, row in df.iterrows():
             m_label = f"{row.get('TAKIM1', 'T1')} - {row.get('TAKIM2', 'T2')}"
+            results[str(idx)] = st.sidebar.selectbox(
+                m_label, 
+                options=["Oynanmadı", "1", "0", "2"], 
+                index=["Oynanmadı", "1", "0", "2"].index(results.get(str(idx), "Oynanmadı")),
+                key=f"match_{idx}"
+            )
+        
+        if st.sidebar.button("💾 Kaydet"):
+            with open(RESULT_FILE, "w") as f:
+                json.dump(results, f)
+            st.rerun()
+
+    scores = {p: 0.0 for p in participants}
+    for idx_str, res in results.items():
+        if res != "Oynanmadı" and idx_str.isdigit():
+            idx = int(idx_str)
+            row = df.iloc[idx]
+            try:
+                odd = float(row[res])
+                for p in participants:
+                    if str(row[p]) == res:
+                        scores[p] += odd
+            except: 
+                continue
+
+    lb = pd.DataFrame(list(scores.items()), columns=['Katılımcı', 'Toplam Puan'])
+    st.dataframe(lb.sort_values('Toplam Puan', ascending=False).reset_index(drop=True), use_container_width=True)
+
+except Exception as e:
+    st.error(f"Sistem Hatası: {e}")

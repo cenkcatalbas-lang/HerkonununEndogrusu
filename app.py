@@ -20,7 +20,10 @@ def save_results(results):
 
 @st.cache_data
 def load_data():
-    return pd.read_excel("HKED.xlsx")
+    df = pd.read_excel("HKED.xlsx")
+    # Sütun isimlerindeki tüm boşlukları kaldırır, böylece "YİĞİT " ile "YİĞİT" aynı olur
+    df.columns = df.columns.str.strip()
+    return df
 
 # --- OTURUM YÖNETİMİ ---
 if 'authenticated' not in st.session_state:
@@ -49,8 +52,14 @@ with st.sidebar:
 try:
     df = load_data()
     results = load_results()
-    participants = ['TOLGA', 'MUSTAFA', 'IŞITAN', 'YİĞİT ', 'CENK']
-    scores = {p.strip(): 0.0 for p in participants}
+  # Listeyi boşluksuz tanımlayın
+participants = ['TOLGA', 'MUSTAFA', 'IŞITAN', 'YİĞİT', 'CENK']
+
+# Puan hesaplarken de strip() kullanarak garantiye alın
+for p in participants:
+    # row[p] kısmında hata alıyorsanız, p'nin Excel'deki başlıkla aynı olduğundan emin olun
+    if int(row[p.strip()]) == int(res): 
+        scores[p.strip()] += odd
 
     # Admin ise sonuçları güncelle
     if st.session_state.authenticated:

@@ -189,6 +189,17 @@ section[data-testid="stSidebar"] * {
     color: #ffffff !important;
     border: 1px solid #444466 !important;
 }
+
+/* Selectbox — seçili değer ve dropdown yazısı siyah */
+div[data-baseweb="select"] span,
+div[data-baseweb="select"] div,
+div[data-baseweb="popover"] li,
+div[data-baseweb="popover"] span {
+    color: #000000 !important;
+}
+div[data-baseweb="select"] > div {
+    background: #ffffff !important;
+}
 </style>
 """, unsafe_allow_html=True)
 

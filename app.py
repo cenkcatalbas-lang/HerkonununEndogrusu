@@ -20,9 +20,9 @@ st.markdown("""
     background: #0f0f1a;
 }
 
-/* Tüm yazılar okunabilir beyaz */
+/* Tüm yazılar net beyaz */
 body, p, span, div, label, .stMarkdown, .stText {
-    color: #f0f0f0 !important;
+    color: #ffffff !important;
 }
 
 .big-title {
@@ -37,7 +37,7 @@ body, p, span, div, label, .stMarkdown, .stText {
 
 .sub {
     text-align: center;
-    color: #bbbbbb;
+    color: #cccccc;
     letter-spacing: 2px;
     margin-bottom: 1.5rem;
     font-size: 0.9rem;
@@ -55,60 +55,69 @@ body, p, span, div, label, .stMarkdown, .stText {
     align-items: center;
 }
 
-/* 1. — altın, koyu yazı */
+/* 1. — altın arka plan, KESİNLİKLE siyah yazı */
 .c1 {
     background: #FFD700;
-    color: #000000;
+    color: #000000 !important;
     font-size: 1.2rem;
     border: none;
 }
+.c1 * { color: #000000 !important; }
 
-/* 2. — gümüş, koyu yazı */
+/* 2. — koyu gri arka plan, beyaz yazı */
 .c2 {
-    background: #C0C0C0;
-    color: #111111;
+    background: #2e2e3e;
+    color: #ffffff !important;
+    border: 2px solid #888888;
 }
+.c2 * { color: #ffffff !important; }
 
-/* 3. — bronz, koyu yazı */
+/* 3. — koyu bronz arka plan, beyaz yazı */
 .c3 {
-    background: #b87333;
-    color: #ffffff;
+    background: #3d2000;
+    color: #ffffff !important;
+    border: 2px solid #b87333;
 }
+.c3 * { color: #ffffff !important; }
 
-/* 4-5 — koyu arka plan, açık yazı */
+/* 4-5 — çok koyu arka plan, açık gri yazı */
 .cx {
-    background: #1e1e2e;
-    color: #cccccc;
-    border: 1px solid #333355;
+    background: #12121e;
+    color: #cccccc !important;
+    border: 1px solid #2a2a44;
 }
+.cx * { color: #cccccc !important; }
 
 .roast {
     font-style: italic;
-    font-size: 0.87rem;
-    padding: 9px 15px;
+    font-size: 0.88rem;
+    padding: 10px 16px;
     border-radius: 8px;
     margin-bottom: 8px;
     border-left: 3px solid;
+    font-weight: 500;
 }
 
-/* 1. roast — koyu arka plan, sarı yazı okunabilir */
+/* 1. roast — parlak sarı yazı, çok koyu arka plan */
 .r1 {
-    background: #1a1500;
+    background: #1c1500;
     border-color: #FFD700;
-    color: #FFD700;
+    color: #FFD700 !important;
 }
+.r1 * { color: #FFD700 !important; }
 
-/* Diğer roastlar — koyu arka plan, kırmızımsı yazı */
+/* Diğer roastlar — parlak pembe yazı, çok koyu arka plan */
 .rx {
-    background: #1a0000;
-    border-color: #cc3333;
-    color: #ff9999;
+    background: #1c0000;
+    border-color: #ff5555;
+    color: #ffbbbb !important;
 }
+.rx * { color: #ffbbbb !important; }
 
 .prob-row {
     padding: 12px 16px;
     margin: 6px 0;
-    background: #1a1a2e;
+    background: #12121e;
     border-radius: 10px;
 }
 
@@ -120,11 +129,11 @@ body, p, span, div, label, .stMarkdown, .stText {
 .prob-yorum {
     font-weight: 700;
     font-size: 0.95rem;
-    color: #ffffff;
+    color: #ffffff !important;
 }
 
 .prob-bar-bg {
-    background: #333355;
+    background: #252540;
     border-radius: 6px;
     height: 12px;
     margin-top: 7px;
@@ -141,13 +150,13 @@ body, p, span, div, label, .stMarkdown, .stText {
 
 /* Metrik kutuları */
 div[data-testid="metric-container"] {
-    background: #1a1a2e;
+    background: #12121e;
     border-radius: 10px;
-    border: 1px solid #333366;
+    border: 1px solid #252550;
     padding: 10px;
 }
 div[data-testid="metric-container"] label {
-    color: #aaaacc !important;
+    color: #aaaadd !important;
 }
 div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
     color: #ffffff !important;
@@ -156,11 +165,11 @@ div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
 
 /* Sidebar */
 section[data-testid="stSidebar"] {
-    background: #0a0a18;
-    border-right: 1px solid #222244;
+    background: #080812;
+    border-right: 1px solid #1a1a33;
 }
 section[data-testid="stSidebar"] * {
-    color: #dddddd !important;
+    color: #ffffff !important;
 }
 
 /* Buton */

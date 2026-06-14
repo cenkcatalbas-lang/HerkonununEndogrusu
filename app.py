@@ -113,3 +113,23 @@ try:
 
 except Exception as e:
     st.error(f"Sistem Hatası: {e}")
+# Puan Tablosu ve Etiketleme
+    lb = pd.DataFrame(list(scores.items()), columns=['Katılımcı', 'Toplam Puan'])
+    lb = lb.sort_values('Toplam Puan', ascending=False).reset_index(drop=True)
+    
+    # Etiketleri ekleyen fonksiyon
+    def get_rank_label(rank):
+        labels = {
+            0: "Normal", 
+            1: "Tecrübesiz", 
+            2: "Aptal", 
+            3: "Gerizekalı",
+            4: "Beyinsiz"
+        }
+        return labels.get(rank, "---")
+
+    lb['Durum'] = [get_rank_label(i) for i in range(len(lb))]
+    lb.index = range(1, len(lb) + 1)
+    
+    # Tabloyu görselleştirme
+    st.dataframe(lb.style.format({"Toplam Puan": "{:.2f}"}).background_gradient(cmap="Greens"), use_container_width=True)

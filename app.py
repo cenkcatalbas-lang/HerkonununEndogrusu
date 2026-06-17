@@ -366,6 +366,47 @@ def fetch_live_results(df):
     except Exception as e:
         return {}, {}
 
+def fetch_todays_matches():
+    """ESPN API'dan bugünün Dünya Kupası maçlarını çeker, saatleri TSİ'ye çevirir."""
+    import datetime
+    try:
+        today = datetime.datetime.utcnow()
+        date_str = today.strftime("%Y%m%d")
+        url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates={date_str}"
+        resp = requests.get(url, timeout=8, headers={"User-Agent": "Mozilla/5.0"})
+        if resp.status_code != 200:
+            return []
+        data = resp.json()
+        matches = []
+        for event in data.get("events", []):
+            comp = (event.get("competitions") or [{}])[0]
+            competitors = comp.get("competitors", [])
+            if len(competitors) < 2:
+                continue
+            home = next((c for c in competitors if c.get("homeAway") == "home"), competitors[0])
+            away = next((c for c in competitors if c.get("homeAway") == "away"), competitors[1])
+            state = comp.get("status", {}).get("type", {}).get("state", "pre")
+            detail = comp.get("status", {}).get("type", {}).get("shortDetail", "")
+            date_raw = event.get("date", "")
+            try:
+                dt_utc = datetime.datetime.strptime(date_raw, "%Y-%m-%dT%H:%MZ")
+                dt_tsi = dt_utc + datetime.timedelta(hours=3)
+                time_str = dt_tsi.strftime("%H:%M")
+            except:
+                time_str = "?"
+            matches.append({
+                "home": home.get("team", {}).get("displayName", "?"),
+                "away": away.get("team", {}).get("displayName", "?"),
+                "time": time_str,
+                "state": state,
+                "detail": detail,
+                "home_score": home.get("score", ""),
+                "away_score": away.get("score", ""),
+            })
+        return matches
+    except:
+        return []
+
 def load_results():
     # Önce GitHub raw'dan oku (deploy'dan etkilenmez)
     try:
@@ -764,7 +805,52 @@ try:
     else:
         st.info("Henüz sonuç girilmemiş.")
 
-    st.markdown('<div class="section-title">📅 TÜM FİKSTÜR</div>', unsafe_allow_html=True)
+    # --- BUGÜNÜN MAÇLARI ---
+    st.markdown('<div class="section-title">📅 BUGÜNÜN MAÇLARI</div>', unsafe_allow_html=True)
+
+    import time as _time
+    now_ts = _time.time()
+    if ("today_matches" not in st.session_state or
+            now_ts - st.session_state.get("today_fetch_ts", 0) > 180):
+        st.session_state.today_matches = fetch_todays_matches()
+        st.session_state.today_fetch_ts = now_ts
+
+    today_matches = st.session_state.get("today_matches", [])
+
+    if today_matches:
+        for m in today_matches:
+            state = m["state"]
+            if state == "post":
+                badge = f'<span style="background:#22c55e;color:white;padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:700;">BİTTİ</span>'
+                score_str = f'<b>{m["home_score"]} - {m["away_score"]}</b>'
+                time_color = "#22c55e"
+            elif state == "in":
+                badge = f'<span style="background:#ef4444;color:white;padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:700;animation:pulse 1s infinite;">🔴 CANLI {m["detail"]}</span>'
+                score_str = f'<b>{m["home_score"]} - {m["away_score"]}</b>'
+                time_color = "#ef4444"
+            else:
+                badge = f'<span style="background:#6366f1;color:white;padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:700;">BEKL.</span>'
+                score_str = "vs"
+                time_color = "#6366f1"
+
+            st.markdown(f"""
+            <div style="background:#ffffff; border-radius:12px; padding:12px 18px; margin:6px 0;
+                        box-shadow:0 1px 4px rgba(0,0,0,0.08); display:flex;
+                        align-items:center; justify-content:space-between; gap:12px;">
+                <span style="color:{time_color}; font-weight:800; font-size:1rem; min-width:52px;">
+                    TSİ {m["time"]}
+                </span>
+                <span style="color:#1a1a2e; font-weight:600; flex:1; text-align:right;">{m["home"]}</span>
+                <span style="color:#1a1a2e; font-weight:800; font-size:1.1rem; min-width:60px; text-align:center;">{score_str}</span>
+                <span style="color:#1a1a2e; font-weight:600; flex:1; text-align:left;">{m["away"]}</span>
+                {badge}
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("Bugün maç bulunamadı veya API erişimi yok.")
+
+    st.markdown("---")
+    st.markdown('<div class="section-title">📋 TÜM FİKSTÜR</div>', unsafe_allow_html=True)
     with st.expander("Fikstürü Görüntüle"):
         st.dataframe(df, use_container_width=True)
 

@@ -247,84 +247,6 @@ def load_data():
     df.columns = [re.sub(r'[^a-zA-ZçÇğĞıİöÖşŞüÜ0-9]', '', str(c)).upper() for c in df.columns]
     return df
 
-def fetch_live_results(df):
-    """
-    football-data.org ücretsiz API'sından Dünya Kupası 2026 sonuçlarını çeker.
-    API key: football-data.org/client/register adresinden ücretsiz alınır.
-    Railway'de env var olarak FD_API_KEY adıyla ekle.
-    """
-    # Takım ismi eşleştirme (Excel Türkçe → API İngilizce)
-    name_map = {
-        "Meksika": ["Mexico"],
-        "Güney Afrika": ["South Africa"],
-        "Güney Kore": ["South Korea", "Korea Republic"],
-        "Çekya": ["Czech Republic", "Czechia"],
-        "Kanada": ["Canada"],
-        "Bosna Hersek": ["Bosnia and Herzegovina", "Bosnia-Herzegovina"],
-        "ABD": ["USA", "United States"],
-        "Paraguay": ["Paraguay"],
-        "Katar": ["Qatar"],
-        "İsviçre": ["Switzerland"],
-        "Brezilya": ["Brazil"],
-        "Fas": ["Morocco"],
-        "Haiti": ["Haiti"],
-        "İskoçya": ["Scotland"],
-        "Avustralya": ["Australia"],
-        "Türkiye": ["Türkiye", "Turkey"],
-        "Almanya": ["Germany"],
-        "Curaçao": ["Curaçao", "Curacao"],
-        "Hollanda": ["Netherlands"],
-        "Japonya": ["Japan"],
-        "Fildişi": ["Côte d'Ivoire", "Ivory Coast"],
-        "Ekvador": ["Ecuador"],
-        "İsveç": ["Sweden"],
-        "Tunus": ["Tunisia"],
-        "İspanya": ["Spain"],
-        "Yeşil Burun": ["Cape Verde"],
-        "Belçika": ["Belgium"],
-        "Mısır": ["Egypt"],
-        "Suudi Arabistan": ["Saudi Arabia"],
-        "Uruguay": ["Uruguay"],
-        "İran": ["Iran"],
-        "Yeni Zelanda": ["New Zealand"],
-        "Fransa": ["France"],
-        "Senegal": ["Senegal"],
-        "Irak": ["Iraq"],
-        "Norveç": ["Norway"],
-        "Arjantin": ["Argentina"],
-        "Cezayir": ["Algeria"],
-        "Avusturya": ["Austria"],
-        "Ürdün": ["Jordan"],
-        "Portekiz": ["Portugal"],
-        "Kongo": ["DR Congo", "Congo DR"],
-        "İngiltere": ["England"],
-        "Hırvatistan": ["Croatia"],
-        "Gana": ["Ghana"],
-        "Panama": ["Panama"],
-        "Özbekistan": ["Uzbekistan"],
-        "Kolombiya": ["Colombia"],
-        "İskoçya": ["Scotland"],
-        "Sırbistan": ["Serbia"],
-        "Slovenya": ["Slovenia"],
-        "Hollanda": ["Netherlands"],
-        "Danimarka": ["Denmark"],
-    }
-
-    def tr_to_en(tr_name):
-        return name_map.get(tr_name, [tr_name])
-
-    def match_team(api_name, tr_name):
-        for en in tr_to_en(tr_name):
-            if en.lower() in api_name.lower() or api_name.lower() in en.lower():
-                return True
-        return False
-
-    try:
-        import os
-        api_key = os.environ.get("FD_API_KEY", "")
-        if not api_key:
-            return {}, {}
-
         url = "https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED"
         headers = {"X-Auth-Token": api_key}
         resp = requests.get(url, headers=headers, timeout=10)
@@ -543,8 +465,6 @@ with st.sidebar:
                     json.dump(results_admin, f)
             except:
                 pass
-            st.session_state.manual_results = results_admin
-            st.session_state.pop("live_results", None)
             st.cache_data.clear()
             st.success("Kaydedildi!")
             st.rerun()
@@ -604,31 +524,7 @@ try:
     df = load_data()
     roast_settings = load_roast_settings()
 
-    import time, os
-    now = time.time()
-
-    # Her 5 dakikada bir API'dan çek
-    if ("live_results" not in st.session_state or
-        now - st.session_state.get("last_fetch", 0) > 300):
-        with st.spinner("🔄 Güncel maç sonuçları çekiliyor..."):
-            fetched, scores_map = fetch_live_results(df)
-        if fetched:
-            st.session_state.live_results = fetched
-            st.session_state.live_scores = scores_map
-            st.session_state.last_fetch = now
-
-    if not os.environ.get("FD_API_KEY"):
-        st.warning("⚠️ FD_API_KEY environment variable eksik. Railway → Variables bölümüne ekle.", icon="🔑")
-
-    if "live_results" in st.session_state and st.session_state.live_results:
-        results = st.session_state.live_results
-        n_live = len(results)
-        st.success(f"✅ {n_live} maç sonucu otomatik güncellendi!", icon="🌐")
-    else:
-        # API yoksa admin panelinden girilen sonuçları session state'te tut
-        if "manual_results" not in st.session_state:
-            st.session_state.manual_results = load_results()
-        results = st.session_state.manual_results
+    results = load_results()
 
     scores = {p: 0.0 for p in PARTICIPANT_NAMES}
     for idx_str, res in results.items():
@@ -655,10 +551,7 @@ try:
 
     col_refresh = st.columns([3,1])[1]
     with col_refresh:
-        if st.button("🔄 Şimdi Güncelle"):
-            st.session_state.pop("live_results", None)
-            st.session_state.pop("last_fetch", None)
-            st.rerun()
+
 
     st.markdown("---")
 
@@ -770,8 +663,7 @@ try:
                 if i + j < len(match_cards):
                     idx_str, t1, t2, res, hs, ds, as_ = match_cards[i + j]
                     # Skoru reverse-engineer et: oranlardan değil sembolik yaz
-                    live_sc = st.session_state.get("live_scores", {})
-                    real_score = live_sc.get(idx_str)
+                    real_score = None
                     if res == "1":
                         score_display = f"{real_score[0]} - {real_score[1]}" if real_score else "✓ - ✗"
                         color = "#22c55e"

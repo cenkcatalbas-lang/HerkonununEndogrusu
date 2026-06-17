@@ -247,47 +247,6 @@ def load_data():
     df.columns = [re.sub(r'[^a-zA-ZçÇğĞıİöÖşŞüÜ0-9]', '', str(c)).upper() for c in df.columns]
     return df
 
-        url = "https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED"
-        headers = {"X-Auth-Token": api_key}
-        resp = requests.get(url, headers=headers, timeout=10)
-        api_matches = []
-        if resp.status_code == 200:
-            data = resp.json()
-            for m in data.get("matches", []):
-                score = m.get("score", {}).get("fullTime", {})
-                hs = score.get("home")
-                as_ = score.get("away")
-                if hs is not None and as_ is not None:
-                    api_matches.append({
-                        "home": m.get("homeTeam", {}).get("name", ""),
-                        "away": m.get("awayTeam", {}).get("name", ""),
-                        "homeScore": int(hs),
-                        "awayScore": int(as_),
-                    })
-
-        # Excel satırlarıyla eşleştir
-        fetched = {}
-        scores_map = {}
-        for idx in range(len(df)):
-            row = df.iloc[idx]
-            t1 = str(row.iloc[2]).strip()
-            t2 = str(row.iloc[4]).strip()
-            for m in api_matches:
-                if match_team(m["home"], t1) and match_team(m["away"], t2):
-                    hs, as_ = m["homeScore"], m["awayScore"]
-                    scores_map[str(idx)] = (hs, as_)
-                    if hs > as_:
-                        fetched[str(idx)] = "1"
-                    elif hs == as_:
-                        fetched[str(idx)] = "0"
-                    else:
-                        fetched[str(idx)] = "2"
-                    break
-        return fetched, scores_map
-
-    except Exception as e:
-        return {}, {}
-
 def fetch_todays_matches():
     """ESPN API'dan bugünün Dünya Kupası maçlarını çeker, saatleri TSİ'ye çevirir."""
     import datetime
@@ -548,10 +507,6 @@ try:
     m1.metric("⚽ Toplam Maç", len(df))
     m2.metric("✅ Oynanan", played)
     m3.metric("⏳ Kalan", remaining)
-
-    col_refresh = st.columns([3,1])[1]
-    with col_refresh:
-
 
     st.markdown("---")
 
